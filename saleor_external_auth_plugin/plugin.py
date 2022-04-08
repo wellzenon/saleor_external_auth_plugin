@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from channel.models import Channel
 
 
-class SocialLoginPlugin(BasePlugin):
+class ExternalAuthPlugin(BasePlugin):
     """Abstract class for storing all methods available for any plugin.
 
     All methods take previous_value parameter.

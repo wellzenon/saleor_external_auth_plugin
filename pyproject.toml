@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "social-auth"
-version = "0.1.0"
+name = "saleor-external-auth-plugin"
+version = "0.2.0"
 description = "Social auth for saleor"
 authors = ["Wellington Zenon <wellington.zenon@gmail.com>"]
 packages = [
-    { include = "plugin.py", from="social_auth"}
+    { include = "plugin.py", from="saleor_external_auth_plugin"}
 ]
 
 [tool.poetry.dependencies]
@@ -18,4 +18,4 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.plugins."saleor.plugins"]
-"social_auth" = "social_auth.plugin:SocialLoginPlugin"
+"saleor_external_auth_plugin" = "saleor_external_auth_plugin.plugin:ExternalAuthPlugin"
