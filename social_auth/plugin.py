@@ -1,20 +1,16 @@
-from .utils import pipe
 from typing import TYPE_CHECKING, Optional
 
 from django.core.handlers.wsgi import WSGIRequest
 from saleor.plugins.base_plugin import BasePlugin
 
-from .auth import (
-    get_providers_from_config,
-    get_credentials,
-    get_context,
-    get_auth_url,
-    get_tokens,
-    get_userinfo,
-    get_user,
+from . import constants, utils
+from . import external_auth as ea
+
+from .external_auth_types import (
+    ConfigurationTypeField,
+    ExternalAccessTokens,
+    PluginConfigurationType,
 )
-from .types import ConfigurationTypeField, ExternalAccessTokens, PluginConfigurationType
-from . import constants
 
 if TYPE_CHECKING:
     # flake8: noqa
@@ -61,7 +57,7 @@ class SocialLoginPlugin(BasePlugin):
         channel: Optional["Channel"] = None,
     ):
         self.configuration = self.get_plugin_configuration(configuration)
-        self.providers = get_providers_from_config(self.configuration)
+        self.providers_config = ea.get_providers_from_config(self.configuration)
         self.active = active
         self.channel = channel
 
@@ -71,21 +67,28 @@ class SocialLoginPlugin(BasePlugin):
     def external_authentication_url(
         self, payload: dict, request: WSGIRequest, **kwargs
     ) -> dict:
-        return pipe(payload, get_context(self.providers), get_auth_url)
+        context = ea.get_context(self.providers_config)(payload)
+        provider = context.provider
+        auth_uri = utils.make_uri(provider.auth_uri.path)
+
+        return {
+            "authorizationUrl": auth_uri(
+                {
+                    "client_id": provider.client_id,
+                    "state": ea.get_state(provider.client_id),
+                    "redirect_uri": payload.get("redirectUri", provider.redirect_uri),
+                    **provider.auth_uri.extra_params,
+                }
+            )
+        }
 
     def external_obtain_access_tokens(
         self, payload: dict, request: WSGIRequest, previous_value: ExternalAccessTokens
     ) -> ExternalAccessTokens:
+        context = ea.get_context(self.providers_config)(payload)
+        tokens = ea.tokens(context)
 
-        user, tokens = pipe(
-            payload,
-            get_context(self.providers),
-            get_credentials,
-            get_userinfo,
-            get_user,
-            get_tokens,
-        )
-        request._cached_user = user
+        request._cached_user = tokens.user
         request.refresh_token = tokens.refresh_token
 
         return tokens

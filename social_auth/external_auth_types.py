@@ -1,6 +1,5 @@
-from dataclasses import dataclass
-from token import OP
-from typing import List, Optional
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
 
 from saleor.account.models import User
 
@@ -36,28 +35,36 @@ class ExternalAccessTokens:
 
 
 @dataclass
-class Provider:
-    CLIENT_ID: str
-    CLIENT_SECRET: Optional[str]
-    REDIRECT_URI: Optional[str]
-    AUTH_URI: Optional[str]
-    AUTH_SCOPE: Optional[str]
-    AUTH_ACCESSS_TYPE: Optional[str]
-    AUTH_INCLUDE_GRANTED_SCOPES: Optional[str]
-    AUTH_RESPONSE_TYPE: Optional[str]
-    TOKENS_URI: str
-    TOKENS_GRANT_TYPE: Optional[str]
-    USER_INFO_URI: str
+class Uri:
+    path: str
+    extra_params: Optional[Dict[str, str]] = field(default_factory=(lambda: {}))
 
 
 @dataclass
-class Payload:
-    input: str
-    provider: str
+class Provider:
+    name: str
+    client_id: str
+    tokens_uri: Uri
+    user_info_uri: Uri
+    auth_uri: Optional[Uri] = None
+    client_secret: Optional[str] = None
+    redirect_uri: Optional[str] = None
 
 
 @dataclass
 class Context:
-    payload: Payload
+    payload: dict
     provider: Provider
     data: Optional[dict] = None
+
+
+class ExternalAuthError(Exception):
+    def __init__(self, value) -> None:
+        self.value = value
+
+    def __str__(self) -> str:
+        return f"External Authentication Error: {self.value}"
+
+
+class AuthWarning(Warning):
+    pass
